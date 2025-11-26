@@ -9,8 +9,6 @@
 enum GameState {
     MENU,
     PLAYING,
-    HOSTING,
-    JOINING,
     SETTINGS
 };
 
@@ -53,12 +51,13 @@ private:
     float pulsePhase;
     float fadeIn;
     Uint32 lastSelectTime;
+    float coinRotation;
     
-    // Starfield
-    struct Star {
-        float x, y, speed, brightness;
+    // Clouds
+    struct Cloud {
+        float x, y, speed;
     };
-    std::vector<Star> stars;
+    std::vector<Cloud> clouds;
     
     // Input handling
     Uint32 lastKeyTime;
@@ -71,15 +70,18 @@ private:
     
     // Rendering
     void renderBackground(SDL_Renderer* renderer);
-    void renderStarfield(SDL_Renderer* renderer);
+    void renderClouds(SDL_Renderer* renderer);
+    void renderGround(SDL_Renderer* renderer);
     void renderTitle(SDL_Renderer* renderer);
     void renderItems(SDL_Renderer* renderer);
     void renderMenuItem(SDL_Renderer* renderer, MenuItem& item, bool isSelected);
     void renderText(SDL_Renderer* renderer, const char* text, int x, int y, 
                    TTF_Font* font, SDL_Color color, bool centered = true);
+    void renderCoin(SDL_Renderer* renderer, int x, int y, float rotation);
+    void renderMushroom(SDL_Renderer* renderer, int x, int y);
     
     // Utilities
-    void initStarfield();
+    void initClouds();
     float easeInOutCubic(float t);
     SDL_Color lerpColor(SDL_Color a, SDL_Color b, float t);
 };

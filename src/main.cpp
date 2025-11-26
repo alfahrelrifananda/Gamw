@@ -16,7 +16,7 @@ public:
     bool init() {
         // Wayland compatibility
         SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0");
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"); // Pixel-perfect for retro
         SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
         
         if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -47,7 +47,7 @@ public:
         }
         
         window = SDL_CreateWindow(
-            "Gamw",
+            "Super Gamw Bros",
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
             fullscreen ? windowWidth : 1280,
@@ -83,11 +83,10 @@ public:
         lastFrameTime = SDL_GetTicks();
         
         std::cout << "========================================" << std::endl;
-        std::cout << "Gamw" << std::endl;
+        std::cout << "Super Gamw Bros" << std::endl;
         std::cout << "========================================" << std::endl;
         std::cout << "Window: " << windowWidth << "x" << windowHeight << std::endl;
         std::cout << "Video Driver: " << SDL_GetCurrentVideoDriver() << std::endl;
-        std::cout << "Renderer: " << SDL_GetRendererInfo(renderer, &rendererInfo) << std::endl;
         std::cout << "========================================" << std::endl;
         
         return true;
@@ -118,7 +117,6 @@ public:
 private:
     SDL_Window* window;
     SDL_Renderer* renderer;
-    SDL_RendererInfo rendererInfo;
     Menu menu;
     bool running;
     GameState state;
@@ -165,15 +163,9 @@ private:
         }
         else if (state == PLAYING) {
             if (!runGameBox(renderer)) {
-            state = MENU; 
-        std::cout << "[*] Returning from game to menu" << std::endl;
-    }
-        }
-        else if (state == HOSTING) {
-            // Server hosting logic here
-        }
-        else if (state == JOINING) {
-            // Client joining logic here
+                state = MENU; 
+                std::cout << "[*] Returning from game to menu" << std::endl;
+            }
         }
         else if (state == SETTINGS) {
             // Settings logic here
@@ -188,53 +180,13 @@ private:
             menu.render(renderer);
         }
         else if (state == PLAYING) {
-            renderPlaying();
-        }
-        else if (state == HOSTING) {
-            renderHosting();
-        }
-        else if (state == JOINING) {
-            renderJoining();
+            // Game rendering is handled in runGameBox
         }
         else if (state == SETTINGS) {
             renderSettings();
         }
         
         SDL_RenderPresent(renderer);
-    }
-    
-    void renderPlaying() {
-        // Placeholder for game rendering
-        SDL_SetRenderDrawColor(renderer, 20, 40, 60, 255);
-        SDL_RenderClear(renderer);
-        
-        // Draw simple text
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_Rect rect = {windowWidth/2 - 150, windowHeight/2 - 50, 300, 100};
-        SDL_RenderFillRect(renderer, &rect);
-        
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderDrawRect(renderer, &rect);
-    }
-    
-    void renderHosting() {
-        // Placeholder for hosting screen
-        SDL_SetRenderDrawColor(renderer, 40, 20, 60, 255);
-        SDL_RenderClear(renderer);
-        
-        SDL_SetRenderDrawColor(renderer, 200, 150, 255, 255);
-        SDL_Rect rect = {windowWidth/2 - 150, windowHeight/2 - 50, 300, 100};
-        SDL_RenderFillRect(renderer, &rect);
-    }
-    
-    void renderJoining() {
-        // Placeholder for joining screen
-        SDL_SetRenderDrawColor(renderer, 20, 60, 40, 255);
-        SDL_RenderClear(renderer);
-        
-        SDL_SetRenderDrawColor(renderer, 150, 255, 200, 255);
-        SDL_Rect rect = {windowWidth/2 - 150, windowHeight/2 - 50, 300, 100};
-        SDL_RenderFillRect(renderer, &rect);
     }
     
     void renderSettings() {
@@ -288,7 +240,7 @@ private:
 };
 
 int main(int argc, char* argv[]) {
-    std::cout << "Starting Gamw..." << std::endl;
+    std::cout << "Starting Super Gamw Bros..." << std::endl;
     
     Game game;
     
