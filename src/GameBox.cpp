@@ -246,6 +246,11 @@ bool runGameBox(SDL_Renderer* renderer)
     // Animation
     float animPhase = 0.0f;
     
+    // Day-Night Cycle (5 minutes = 300 seconds for full cycle)
+    const float DAY_CYCLE_DURATION = 300.0f;  // 5 minutes in seconds
+    float dayTime = 0.0f;  // 0.0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset, 1.0 = midnight
+    Uint32 gameStartTime = SDL_GetTicks();
+    
     // Floating texts
     std::vector<FloatingText> floatingTexts;
     
@@ -312,6 +317,8 @@ bool runGameBox(SDL_Renderer* renderer)
         }
         
         if (!gameOver && !levelComplete) {
+             float elapsedTime = (currentTime - gameStartTime) / 1000.0f;
+            dayTime = fmod(elapsedTime / DAY_CYCLE_DURATION, 1.0f);
             // ------- INPUT -------
             const Uint8* keystate = SDL_GetKeyboardState(NULL);
             velocityX = 0.0f;
@@ -583,9 +590,123 @@ bool runGameBox(SDL_Renderer* renderer)
         // ========== RENDERING =================
         // ======================================
         
+        // Calculate sky color based on time of day
+        int skyR, skyG, skyB;
+        
+        // dayTime: 0.0 = midnight, 0.25 = sunrise (6am), 0.5 = noon, 0.75 = sunset (6pm), 1.0 = midnight
+        if (dayTime < 0.25f) {
+            // Night to sunrise (midnight to 6am)
+            float t = dayTime / 0.25f;
+            skyR = static_cast<int>(25 + (255 - 25) * t);
+            skyG = static_cast<int>(25 + (140 - 25) * t);
+            skyB = static_cast<int>(112 + (252 - 112) * t);
+        } else if (dayTime < 0.5f) {
+            // Sunrise to noon (6am to 12pm)
+            float t = (dayTime - 0.25f) / 0.25f;
+            skyR = static_cast<int>(255 - (255 - 92) * t);
+            skyG = static_cast<int>(140 + (148 - 140) * t);
+            skyB = 252;
+        } else if (dayTime < 0.75f) {
+            // Noon to sunset (12pm to 6pm)
+            float t = (dayTime - 0.5f) / 0.25f;
+            skyR = static_cast<int>(92 + (255 - 92) * t);
+            skyG = static_cast<int>(148 - (148 - 100) * t);
+            skyB = static_cast<int>(252 - (252 - 150) * t);
+        } else {
+            // Sunset to night (6pm to midnight)
+            float t = (dayTime - 0.75f) / 0.25f;
+            skyR = static_cast<int>(255 - (255 - 25) * t);
+            skyG = static_cast<int>(100 - (100 - 25) * t);
+            skyB = static_cast<int>(150 - (150 - 112) * t);
+        }
+        
         // Sky background
-        SDL_SetRenderDrawColor(renderer, 92, 148, 252, 255);
+        SDL_SetRenderDrawColor(renderer, skyR, skyG, skyB, 255);
         SDL_RenderClear(renderer);
+        
+        // Calculate sun/moon position (moves in an arc across the sky)
+        float celestialAngle = dayTime * 2.0f * 3.14159f;  // Full circle
+        int celestialX = windowWidth / 2 + static_cast<int>(cos(celestialAngle - 3.14159f / 2.0f) * windowWidth * 0.4f);
+        int celestialY = 100 + static_cast<int>(sin(celestialAngle - 3.14159f / 2.0f) * 150);
+        
+        // Draw sun during day (0.2 to 0.8)
+        if (dayTime > 0.2f && dayTime < 0.8f) {
+            // Sun glow
+            SDL_SetRenderDrawColor(renderer, 255, 255, 150, 100);
+            for (int i = 0; i < 3; i++) {
+                SDL_Rect glow = {celestialX - 40 - i * 8, celestialY - 40 - i * 8, 80 + i * 16, 80 + i * 16};
+                SDL_RenderFillRect(renderer, &glow);
+            }
+            
+            // Sun body
+            SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+            SDL_Rect sun = {celestialX - 25, celestialY - 25, 50, 50};
+            SDL_RenderFillRect(renderer, &sun);
+            
+            // Sun inner circle
+            SDL_SetRenderDrawColor(renderer, 255, 255, 150, 255);
+            SDL_Rect sunInner = {celestialX - 15, celestialY - 15, 30, 30};
+            SDL_RenderFillRect(renderer, &sunInner);
+            
+            // Sun rays
+            SDL_SetRenderDrawColor(renderer, 255, 255, 100, 255);
+            for (int i = 0; i < 8; i++) {
+                float angle = i * 3.14159f / 4.0f;
+                int rayX = celestialX + static_cast<int>(cos(angle) * 35);
+                int rayY = celestialY + static_cast<int>(sin(angle) * 35);
+                int rayEndX = celestialX + static_cast<int>(cos(angle) * 50);
+                int rayEndY = celestialY + static_cast<int>(sin(angle) * 50);
+                SDL_RenderDrawLine(renderer, rayX, rayY, rayEndX, rayEndY);
+                SDL_RenderDrawLine(renderer, rayX + 1, rayY, rayEndX + 1, rayEndY);
+                SDL_RenderDrawLine(renderer, rayX, rayY + 1, rayEndX, rayEndY + 1);
+            }
+        }
+        
+        // Draw moon during night (0.0 to 0.2 and 0.8 to 1.0)
+        if (dayTime < 0.2f || dayTime > 0.8f) {
+            // Moon glow
+            SDL_SetRenderDrawColor(renderer, 200, 200, 255, 80);
+            SDL_Rect moonGlow = {celestialX - 35, celestialY - 35, 70, 70};
+            SDL_RenderFillRect(renderer, &moonGlow);
+            
+            // Moon body
+            SDL_SetRenderDrawColor(renderer, 220, 220, 240, 255);
+            SDL_Rect moon = {celestialX - 20, celestialY - 20, 40, 40};
+            SDL_RenderFillRect(renderer, &moon);
+            
+            // Moon craters
+            SDL_SetRenderDrawColor(renderer, 180, 180, 200, 255);
+            SDL_Rect crater1 = {celestialX - 8, celestialY - 10, 8, 8};
+            SDL_Rect crater2 = {celestialX + 5, celestialY - 5, 6, 6};
+            SDL_Rect crater3 = {celestialX - 5, celestialY + 5, 7, 7};
+            SDL_RenderFillRect(renderer, &crater1);
+            SDL_RenderFillRect(renderer, &crater2);
+            SDL_RenderFillRect(renderer, &crater3);
+        }
+        
+        // Stars during night (more visible at night)
+        if (dayTime < 0.3f || dayTime > 0.7f) {
+            float starAlpha = 1.0f;
+            if (dayTime < 0.3f) {
+                starAlpha = (0.3f - dayTime) / 0.3f;
+            } else {
+                starAlpha = (dayTime - 0.7f) / 0.3f;
+            }
+            
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, static_cast<int>(255 * starAlpha));
+            for (int i = 0; i < 50; i++) {
+                int starX = (i * 137 + 50) % windowWidth;
+                int starY = (i * 239 + 30) % 300;
+                int starSize = 1 + (i % 3);
+                
+                // Twinkling effect
+                float twinkle = (sin((currentTime / 1000.0f + i) * 2.0f) + 1.0f) / 2.0f;
+                if (twinkle > 0.5f) {
+                    SDL_Rect star = {starX, starY, starSize, starSize};
+                    SDL_RenderFillRect(renderer, &star);
+                }
+            }
+        }
         
         // Clouds with parallax
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
