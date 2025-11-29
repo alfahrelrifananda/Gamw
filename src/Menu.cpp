@@ -30,19 +30,19 @@ bool Menu::init(int wWidth, int wHeight) {
     
     // Load title font (large)
     for (const char* path : font_paths) {
-        titleFont = TTF_OpenFont(path, 72);
+        titleFont = TTF_OpenFont(path, 48);
         if (titleFont) break;
     }
     
     // Load item font (medium)
     for (const char* path : font_paths) {
-        itemFont = TTF_OpenFont(path, 28);
+        itemFont = TTF_OpenFont(path, 24);
         if (itemFont) break;
     }
     
     // Load small font
     for (const char* path : font_paths) {
-        smallFont = TTF_OpenFont(path, 16);
+        smallFont = TTF_OpenFont(path, 14);
         if (smallFont) break;
     }
     
@@ -51,10 +51,10 @@ bool Menu::init(int wWidth, int wHeight) {
     }
     
     // Create menu items centered on screen
-    int startY = windowHeight / 2 + 20;
-    int spacing = 70;
-    int itemWidth = 320;
-    int itemHeight = 55;
+    int startY = windowHeight / 2 + 50;
+    int spacing = 65;
+    int itemWidth = 280;
+    int itemHeight = 50;
     int itemX = (windowWidth - itemWidth) / 2;
     
     items.clear();
@@ -71,11 +71,11 @@ bool Menu::init(int wWidth, int wHeight) {
 
 void Menu::initClouds() {
     clouds.clear();
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 6; ++i) {
         Cloud cloud;
         cloud.x = static_cast<float>(std::rand() % windowWidth);
-        cloud.y = static_cast<float>(50 + std::rand() % 200);
-        cloud.speed = 10.0f + static_cast<float>(std::rand() % 20);
+        cloud.y = static_cast<float>(50 + std::rand() % 150);
+        cloud.speed = 15.0f + static_cast<float>(std::rand() % 25);
         clouds.push_back(cloud);
     }
 }
@@ -191,7 +191,7 @@ void Menu::update(float deltaTime) {
         cloud.x += cloud.speed * deltaTime;
         if (cloud.x > windowWidth + 100) {
             cloud.x = -100;
-            cloud.y = static_cast<float>(50 + std::rand() % 200);
+            cloud.y = static_cast<float>(50 + std::rand() % 150);
         }
     }
 }
@@ -200,28 +200,19 @@ void Menu::render(SDL_Renderer* renderer) {
     renderBackground(renderer);
     renderClouds(renderer);
     renderGround(renderer);
+    renderDecorations(renderer);
     renderTitle(renderer);
     renderItems(renderer);
-    
-    // Coins decoration
-    renderCoin(renderer, windowWidth / 2 - 200, windowHeight / 2 - 100, coinRotation);
-    renderCoin(renderer, windowWidth / 2 + 200, windowHeight / 2 - 100, coinRotation + 1.0f);
-    
-    // Version info
-    if (smallFont) {
-        SDL_Color white = {255, 255, 255, 200};
-        renderText(renderer, "v1.0 - Arrow Keys/WASD to navigate - ENTER to select", 
-                windowWidth / 2, windowHeight - 25, smallFont, white, true);
-    }
+    renderFooter(renderer);
 }
 
 void Menu::renderBackground(SDL_Renderer* renderer) {
-    // Sky blue gradient (Mario sky)
-    for (int y = 0; y < windowHeight - 100; ++y) {
-        float t = static_cast<float>(y) / (windowHeight - 100);
-        Uint8 r = static_cast<Uint8>(92 + t * 10);
-        Uint8 g = static_cast<Uint8>(148 + t * 20);
-        Uint8 b = static_cast<Uint8>(252 - t * 40);
+    // Sky blue gradient matching game
+    for (int y = 0; y < windowHeight - 80; ++y) {
+        float t = static_cast<float>(y) / (windowHeight - 80);
+        Uint8 r = static_cast<Uint8>(92 + (255 - 92) * t * 0.3f);
+        Uint8 g = static_cast<Uint8>(148 + (140 - 148) * t * 0.3f);
+        Uint8 b = 252;
         SDL_SetRenderDrawColor(renderer, r, g, b, 255);
         SDL_RenderDrawLine(renderer, 0, y, windowWidth, y);
     }
@@ -231,69 +222,171 @@ void Menu::renderClouds(SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     
     for (const auto& cloud : clouds) {
-        // Simple cloud shape (3 circles approximated with rects)
         int cx = static_cast<int>(cloud.x);
         int cy = static_cast<int>(cloud.y);
         
-        SDL_Rect parts[] = {
-            {cx, cy + 10, 40, 20},
-            {cx + 15, cy, 30, 25},
-            {cx + 30, cy + 8, 35, 22}
-        };
+        // Cloud body (matching game style)
+        SDL_Rect main = {cx, cy + 10, 50, 25};
+        SDL_RenderFillRect(renderer, &main);
         
-        for (const auto& part : parts) {
-            SDL_RenderFillRect(renderer, &part);
-        }
+        SDL_Rect left = {cx + 10, cy, 35, 30};
+        SDL_RenderFillRect(renderer, &left);
+        
+        SDL_Rect right = {cx + 30, cy + 5, 40, 28};
+        SDL_RenderFillRect(renderer, &right);
     }
 }
 
 void Menu::renderGround(SDL_Renderer* renderer) {
-    int groundY = windowHeight - 100;
+    int groundY = windowHeight - 80;
     
-    // Green ground
+    // Grass layer with texture (matching game)
     SDL_SetRenderDrawColor(renderer, 123, 192, 67, 255);
-    SDL_Rect ground = {0, groundY, windowWidth, 100};
-    SDL_RenderFillRect(renderer, &ground);
+    SDL_Rect grass = {0, groundY, windowWidth, 20};
+    SDL_RenderFillRect(renderer, &grass);
     
-    // Brown dirt layer
+    // Grass blades
+    SDL_SetRenderDrawColor(renderer, 100, 170, 50, 255);
+    for (int i = 0; i < windowWidth; i += 4) {
+        SDL_Rect blade = {i, groundY, 2, 12 + (i % 8)};
+        SDL_RenderFillRect(renderer, &blade);
+    }
+    
+    // Dirt layer with texture
     SDL_SetRenderDrawColor(renderer, 139, 90, 43, 255);
-    SDL_Rect dirt = {0, groundY + 40, windowWidth, 60};
+    SDL_Rect dirt = {0, groundY + 20, windowWidth, 60};
     SDL_RenderFillRect(renderer, &dirt);
     
-    // Grass blades (simple lines)
-    SDL_SetRenderDrawColor(renderer, 100, 160, 50, 255);
-    for (int x = 0; x < windowWidth; x += 20) {
-        SDL_RenderDrawLine(renderer, x, groundY, x, groundY - 8);
-        SDL_RenderDrawLine(renderer, x + 10, groundY, x + 10, groundY - 12);
+    // Add dirt texture dots
+    SDL_SetRenderDrawColor(renderer, 120, 75, 35, 255);
+    for (int y = 0; y < 60; y += 6) {
+        for (int x = 0; x < windowWidth; x += 8) {
+            int dotSize = ((x + y) % 3) + 1;
+            SDL_Rect dot = {x + ((x + y) % 4), groundY + 20 + y, dotSize, dotSize};
+            SDL_RenderFillRect(renderer, &dot);
+        }
     }
+    
+    // Lighter dirt spots
+    SDL_SetRenderDrawColor(renderer, 160, 110, 60, 255);
+    for (int y = 0; y < 60; y += 8) {
+        for (int x = 0; x < windowWidth; x += 12) {
+            if ((x + y) % 5 == 0) {
+                SDL_Rect lightSpot = {x, groundY + 22 + y, 3, 3};
+                SDL_RenderFillRect(renderer, &lightSpot);
+            }
+        }
+    }
+}
+
+void Menu::renderDecorations(SDL_Renderer* renderer) {
+    // Animated coins on both sides
+    float coinBounce = std::sin(coinRotation) * 8.0f;
+    
+    // Left coin
+    renderCoin(renderer, 150, static_cast<int>(windowHeight / 2 - 50 + coinBounce), coinRotation);
+    
+    // Right coin
+    renderCoin(renderer, windowWidth - 150, static_cast<int>(windowHeight / 2 - 50 + coinBounce), coinRotation + 1.5f);
+    
+    // Question blocks
+    renderQuestionBlock(renderer, 120, windowHeight / 2 + 80);
+    renderQuestionBlock(renderer, windowWidth - 120, windowHeight / 2 + 80);
+    
+    // Pipes decoration
+    renderPipe(renderer, 80, windowHeight - 140);
+    renderPipe(renderer, windowWidth - 120, windowHeight - 140);
+}
+
+void Menu::renderQuestionBlock(SDL_Renderer* renderer, int x, int y) {
+    int size = 32;
+    float bounce = std::sin(pulsePhase * 2.0f) * 3.0f;
+    SDL_Rect block = {x, static_cast<int>(y + bounce), size, size};
+    
+    // Orange/yellow base
+    SDL_SetRenderDrawColor(renderer, 255, 200, 100, static_cast<Uint8>(255 * fadeIn));
+    SDL_RenderFillRect(renderer, &block);
+    
+    // Top highlight
+    SDL_SetRenderDrawColor(renderer, 255, 230, 150, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect highlight = {block.x + 2, block.y + 2, block.w - 4, 8};
+    SDL_RenderFillRect(renderer, &highlight);
+    
+    // Bottom shadow
+    SDL_SetRenderDrawColor(renderer, 200, 140, 60, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect shadow = {block.x + 2, block.y + block.h - 10, block.w - 4, 8};
+    SDL_RenderFillRect(renderer, &shadow);
+    
+    // Border
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(255 * fadeIn));
+    SDL_RenderDrawRect(renderer, &block);
+    
+    // Draw "?"
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect qTop = {block.x + 10, block.y + 6, 12, 8};
+    SDL_RenderFillRect(renderer, &qTop);
+    SDL_Rect qMid = {block.x + 14, block.y + 12, 8, 6};
+    SDL_RenderFillRect(renderer, &qMid);
+    SDL_Rect qDot = {block.x + 14, block.y + 20, 6, 6};
+    SDL_RenderFillRect(renderer, &qDot);
+}
+
+void Menu::renderPipe(SDL_Renderer* renderer, int x, int y) {
+    int width = 60;
+    int height = 60;
+    
+    // Pipe top (darker green)
+    SDL_SetRenderDrawColor(renderer, 80, 180, 80, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect top = {x - 5, y, width + 10, 12};
+    SDL_RenderFillRect(renderer, &top);
+    
+    // Pipe top highlight
+    SDL_SetRenderDrawColor(renderer, 120, 220, 120, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect topHighlight = {x - 3, y + 2, width + 6, 4};
+    SDL_RenderFillRect(renderer, &topHighlight);
+    
+    // Pipe body
+    SDL_SetRenderDrawColor(renderer, 90, 190, 90, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect body = {x, y + 12, width, height};
+    SDL_RenderFillRect(renderer, &body);
+    
+    // Pipe highlight (left side)
+    SDL_SetRenderDrawColor(renderer, 130, 230, 130, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect bodyHighlight = {x + 4, y + 14, 10, height - 2};
+    SDL_RenderFillRect(renderer, &bodyHighlight);
+    
+    // Pipe shadow (right side)
+    SDL_SetRenderDrawColor(renderer, 60, 140, 60, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect bodyShadow = {x + width - 14, y + 14, 10, height - 2};
+    SDL_RenderFillRect(renderer, &bodyShadow);
+    
+    // Borders
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(255 * fadeIn));
+    SDL_RenderDrawRect(renderer, &top);
+    SDL_RenderDrawRect(renderer, &body);
 }
 
 void Menu::renderTitle(SDL_Renderer* renderer) {
     if (!titleFont) return;
     
-    // Title with shadow
-    float bounce = std::sin(pulsePhase) * 8.0f;
+    float bounce = std::sin(pulsePhase * 1.5f) * 5.0f;
+    int titleY = static_cast<int>(windowHeight / 2 - 150 + bounce);
     
     // Shadow
-    SDL_Color shadow = {0, 0, 0, static_cast<Uint8>(200 * fadeIn)};
-    renderText(renderer, "SUPER GAMW", windowWidth / 2 + 4, 
-            static_cast<int>(80 + bounce + 4), titleFont, shadow, true);
+    SDL_Color shadow = {0, 0, 0, static_cast<Uint8>(180 * fadeIn)};
+    renderText(renderer, "NOT A CAT MARIO", windowWidth / 2 + 3, 
+            titleY + 3, titleFont, shadow, true);
     
     // Main title - Red color (Mario style)
-    SDL_Color red = {
-        static_cast<Uint8>(228),
-        static_cast<Uint8>(0),
-        static_cast<Uint8>(0),
-        static_cast<Uint8>(255 * fadeIn)
-    };
-    renderText(renderer, "SUPER GAMW", windowWidth / 2, 
-            static_cast<int>(80 + bounce), titleFont, red, true);
+    SDL_Color red = {228, 0, 0, static_cast<Uint8>(255 * fadeIn)};
+    renderText(renderer, "NOT A CAT MARIO", windowWidth / 2, 
+            titleY, titleFont, red, true);
     
     // Subtitle
     if (itemFont) {
         SDL_Color yellow = {255, 220, 0, static_cast<Uint8>(255 * fadeIn)};
-        renderText(renderer, "BROS", windowWidth / 2, 
-                static_cast<int>(150 + bounce * 0.5f), itemFont, yellow, true);
+        renderText(renderer, "ADVENTURE", windowWidth / 2, 
+                titleY + 55, itemFont, yellow, true);
     }
 }
 
@@ -308,97 +401,180 @@ void Menu::renderMenuItem(SDL_Renderer* renderer, MenuItem& item, bool isSelecte
     SDL_Rect& r = item.rect;
     float anim = easeInOutCubic(item.selectAnim);
     
-    // Box background - brick style
+    // Brick platform style (matching game)
+    int brickW = 16;
+    int brickH = 16;
+    
+    // Base color
     if (isSelected) {
-        // Orange/yellow brick (question block style)
-        SDL_SetRenderDrawColor(renderer, 243, 168, 59, static_cast<Uint8>(255 * fadeIn));
+        SDL_SetRenderDrawColor(renderer, 210, 130, 90, static_cast<Uint8>(255 * fadeIn));
     } else {
-        // Brown brick
-        SDL_SetRenderDrawColor(renderer, 184, 111, 80, static_cast<Uint8>(200 * fadeIn));
+        SDL_SetRenderDrawColor(renderer, 184, 111, 80, static_cast<Uint8>(230 * fadeIn));
     }
     SDL_RenderFillRect(renderer, &r);
     
-    // Brick outline
+    // Brick pattern with proper clipping
+    for (int by = 0; by < r.h; by += brickH) {
+        for (int bx = 0; bx < r.w; bx += brickW) {
+            int offset = (by / brickH) % 2 == 0 ? 0 : brickW / 2;
+            int actualX = r.x + bx + offset;
+            
+            // Skip if brick would be completely outside
+            if (actualX >= r.x + r.w || actualX + brickW <= r.x) continue;
+            
+            // Calculate clipped brick dimensions
+            int brickStartX = actualX;
+            int brickStartY = r.y + by;
+            int brickEndX = actualX + brickW;
+            int brickEndY = r.y + by + brickH;
+            
+            // Clip to menu bounds
+            if (brickStartX < r.x) brickStartX = r.x;
+            if (brickEndX > r.x + r.w) brickEndX = r.x + r.w;
+            if (brickEndY > r.y + r.h) brickEndY = r.y + r.h;
+            
+            int clippedWidth = brickEndX - brickStartX;
+            int clippedHeight = brickEndY - brickStartY;
+            
+            if (clippedWidth > 0 && clippedHeight > 0) {
+                // Brick highlight (top-left)
+                SDL_SetRenderDrawColor(renderer, 
+                    isSelected ? 230 : 210, 
+                    isSelected ? 160 : 140, 
+                    isSelected ? 110 : 100, 
+                    static_cast<Uint8>(255 * fadeIn));
+                
+                if (clippedHeight > 2) {
+                    SDL_Rect highlight = {brickStartX, brickStartY, clippedWidth - 2, 2};
+                    SDL_RenderFillRect(renderer, &highlight);
+                }
+                if (clippedWidth > 2) {
+                    SDL_Rect highlightL = {brickStartX, brickStartY, 2, clippedHeight - 2};
+                    SDL_RenderFillRect(renderer, &highlightL);
+                }
+                
+                // Brick shadow (bottom-right)
+                SDL_SetRenderDrawColor(renderer, 140, 80, 60, static_cast<Uint8>(200 * fadeIn));
+                if (clippedHeight > 2 && clippedWidth > 4) {
+                    SDL_Rect shadow = {brickStartX + 2, brickStartY + clippedHeight - 2, clippedWidth - 2, 2};
+                    SDL_RenderFillRect(renderer, &shadow);
+                }
+                if (clippedWidth > 2 && clippedHeight > 4) {
+                    SDL_Rect shadowR = {brickStartX + clippedWidth - 2, brickStartY + 2, 2, clippedHeight - 2};
+                    SDL_RenderFillRect(renderer, &shadowR);
+                }
+                
+                // Mortar lines (dark lines between bricks)
+                SDL_SetRenderDrawColor(renderer, 100, 70, 50, static_cast<Uint8>(150 * fadeIn));
+                if (brickEndY <= r.y + r.h) {
+                    SDL_Rect mortarH = {brickStartX, brickStartY + clippedHeight - 1, clippedWidth, 1};
+                    SDL_RenderFillRect(renderer, &mortarH);
+                }
+                if (brickEndX <= r.x + r.w) {
+                    SDL_Rect mortarV = {brickStartX + clippedWidth - 1, brickStartY, 1, clippedHeight};
+                    SDL_RenderFillRect(renderer, &mortarV);
+                }
+            }
+        }
+    }
+    
+    // Outer border
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(255 * fadeIn));
     SDL_RenderDrawRect(renderer, &r);
     
-    // Inner brick details
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, static_cast<Uint8>(100 * fadeIn));
-    int midX = r.x + r.w / 2;
-    int midY = r.y + r.h / 2;
-    SDL_RenderDrawLine(renderer, r.x, midY, r.x + r.w, midY);
-    SDL_RenderDrawLine(renderer, midX, r.y, midX, r.y + r.h);
-    
-    // Selection indicator - Mario star
+    // Selection indicators - Mario stars
     if (isSelected) {
-        float starBounce = std::sin(pulsePhase * 3.0f) * 3.0f;
-        int starSize = 12;
+        float starBounce = std::sin(pulsePhase * 4.0f) * 4.0f;
+        int midY = r.y + r.h / 2;
         
-        // Left star
-        int leftX = r.x - 35;
-        int leftY = midY + static_cast<int>(starBounce);
-        renderMushroom(renderer, leftX, leftY - starSize);
+        // Left indicator
+        renderStar(renderer, r.x - 30, midY + static_cast<int>(starBounce));
         
-        // Right star
-        int rightX = r.x + r.w + 20;
-        int rightY = midY + static_cast<int>(starBounce);
-        renderMushroom(renderer, rightX, rightY - starSize);
+        // Right indicator
+        renderStar(renderer, r.x + r.w + 20, midY + static_cast<int>(starBounce));
     }
     
-    // Render text
+    // Text
     if (itemFont) {
         SDL_Color textColor;
         if (isSelected) {
             textColor = {255, 255, 255, static_cast<Uint8>(255 * fadeIn)};
         } else {
-            textColor = {240, 230, 200, static_cast<Uint8>(230 * fadeIn)};
+            textColor = {245, 235, 215, static_cast<Uint8>(240 * fadeIn)};
         }
         
-        renderText(renderer, item.text.c_str(), midX, 
-                midY - 14, itemFont, textColor, true);
+        renderText(renderer, item.text.c_str(), r.x + r.w / 2, 
+                r.y + r.h / 2 - 10, itemFont, textColor, true);
     }
+}
+
+void Menu::renderStar(SDL_Renderer* renderer, int x, int y) {
+    int size = 16;
+    
+    // Yellow star body
+    SDL_SetRenderDrawColor(renderer, 255, 220, 0, static_cast<Uint8>(255 * fadeIn));
+    
+    // Simple star shape using rectangles
+    SDL_Rect center = {x - size/4, y - size/4, size/2, size/2};
+    SDL_RenderFillRect(renderer, &center);
+    
+    // Points
+    SDL_Rect top = {x - size/8, y - size/2, size/4, size/3};
+    SDL_RenderFillRect(renderer, &top);
+    
+    SDL_Rect bottom = {x - size/8, y + size/6, size/4, size/3};
+    SDL_RenderFillRect(renderer, &bottom);
+    
+    SDL_Rect left = {x - size/2, y - size/8, size/3, size/4};
+    SDL_RenderFillRect(renderer, &left);
+    
+    SDL_Rect right = {x + size/6, y - size/8, size/3, size/4};
+    SDL_RenderFillRect(renderer, &right);
+    
+    // Inner glow
+    SDL_SetRenderDrawColor(renderer, 255, 250, 200, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect glow = {x - size/6, y - size/6, size/3, size/3};
+    SDL_RenderFillRect(renderer, &glow);
 }
 
 void Menu::renderCoin(SDL_Renderer* renderer, int x, int y, float rotation) {
-    // Simple coin (yellow circle approximation)
     int size = 20;
     float scale = std::abs(std::cos(rotation));
     int width = static_cast<int>(size * scale);
+    if (width < 4) width = 4;
     
-    // Outer circle
-    SDL_SetRenderDrawColor(renderer, 255, 200, 0, static_cast<Uint8>(255 * fadeIn));
+    // Gold coin
+    SDL_SetRenderDrawColor(renderer, 255, 215, 0, static_cast<Uint8>(255 * fadeIn));
     SDL_Rect coin = {x - width / 2, y - size / 2, width, size};
     SDL_RenderFillRect(renderer, &coin);
     
-    // Inner detail
-    if (scale > 0.3f) {
-        SDL_SetRenderDrawColor(renderer, 200, 150, 0, static_cast<Uint8>(255 * fadeIn));
-        int innerWidth = static_cast<int>(width * 0.6f);
-        SDL_Rect inner = {x - innerWidth / 2, y - size / 3, innerWidth, size * 2 / 3};
-        SDL_RenderFillRect(renderer, &inner);
+    // Inner darker gold
+    SDL_SetRenderDrawColor(renderer, 218, 165, 32, static_cast<Uint8>(255 * fadeIn));
+    SDL_Rect innerCoin = {x - width / 2 + 2, y - 6, width > 4 ? width - 4 : 2, 12};
+    SDL_RenderFillRect(renderer, &innerCoin);
+    
+    // Shine highlight
+    if (width > 6) {
+        SDL_SetRenderDrawColor(renderer, 255, 250, 205, static_cast<Uint8>(255 * fadeIn));
+        SDL_Rect shine = {x - width / 2 + 2, y - 6, width / 3, 4};
+        SDL_RenderFillRect(renderer, &shine);
     }
+    
+    // Border
+    SDL_SetRenderDrawColor(renderer, 184, 134, 11, static_cast<Uint8>(255 * fadeIn));
+    SDL_RenderDrawRect(renderer, &coin);
 }
 
-void Menu::renderMushroom(SDL_Renderer* renderer, int x, int y) {
-    // Simple mushroom (Mario power-up style)
-    int size = 24;
-    
-    // Stem (beige)
-    SDL_SetRenderDrawColor(renderer, 240, 220, 180, static_cast<Uint8>(255 * fadeIn));
-    SDL_Rect stem = {x - size / 4, y + size / 2, size / 2, size / 2};
-    SDL_RenderFillRect(renderer, &stem);
-    
-    // Cap (red with white spots)
-    SDL_SetRenderDrawColor(renderer, 255, 40, 40, static_cast<Uint8>(255 * fadeIn));
-    SDL_Rect cap = {x - size / 2, y, size, size / 2};
-    SDL_RenderFillRect(renderer, &cap);
-    
-    // White spots
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, static_cast<Uint8>(255 * fadeIn));
-    SDL_Rect spot1 = {x - size / 3, y + 4, 6, 6};
-    SDL_Rect spot2 = {x + size / 6, y + 4, 6, 6};
-    SDL_RenderFillRect(renderer, &spot1);
-    SDL_RenderFillRect(renderer, &spot2);
+void Menu::renderFooter(SDL_Renderer* renderer) {
+    if (smallFont) {
+        // Controls info
+        SDL_Color white = {255, 255, 255, static_cast<Uint8>(220 * fadeIn)};
+        renderText(renderer, "Controls: Arrow Keys or WASD to navigate", 
+                windowWidth / 2, windowHeight - 45, smallFont, white, true);
+        
+        renderText(renderer, "Press ENTER or SPACE to select", 
+                windowWidth / 2, windowHeight - 25, smallFont, white, true);
+    }
 }
 
 void Menu::renderText(SDL_Renderer* renderer, const char* text, int x, int y, 
@@ -431,6 +607,10 @@ SDL_Color Menu::lerpColor(SDL_Color a, SDL_Color b, float t) {
         static_cast<Uint8>(a.b + (b.b - a.b) * t),
         static_cast<Uint8>(a.a + (b.a - a.a) * t)
     };
+}
+
+void Menu::renderMushroom(SDL_Renderer* renderer, int x, int y) {
+    // Not used in new design, but kept for compatibility
 }
 
 void Menu::cleanup() {

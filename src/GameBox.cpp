@@ -825,50 +825,75 @@ bool runGameBox(SDL_Renderer* renderer)
                         }
                     }
                 } else {
-                    // Floating brick platform with detailed texture
-                    // Base brick color
-                    SDL_SetRenderDrawColor(renderer, 184, 111, 80, 255);
-                    SDL_RenderFillRect(renderer, &screenRect);
-                    
-                    // Brick pattern - individual bricks
-                    int brickW = 16;
-                    int brickH = 16;
-                    
-                    for (int by = 0; by < screenRect.h; by += brickH) {
-                        for (int bx = 0; bx < screenRect.w; bx += brickW) {
-                            // Offset every other row
-                            int offset = (by / brickH) % 2 == 0 ? 0 : brickW / 2;
-                            int actualX = screenRect.x + bx + offset;
-                            
-                            if (actualX >= screenRect.x && actualX < screenRect.x + screenRect.w) {
-                                // Brick highlight (top-left)
-                                SDL_SetRenderDrawColor(renderer, 210, 140, 100, 255);
-                                SDL_Rect highlight = {actualX, screenRect.y + by, brickW - 2, 2};
-                                SDL_RenderFillRect(renderer, &highlight);
-                                SDL_Rect highlightL = {actualX, screenRect.y + by, 2, brickH - 2};
-                                SDL_RenderFillRect(renderer, &highlightL);
-                                
-                                // Brick shadow (bottom-right)
-                                SDL_SetRenderDrawColor(renderer, 140, 80, 60, 255);
-                                SDL_Rect shadow = {actualX + 2, screenRect.y + by + brickH - 2, brickW - 2, 2};
-                                SDL_RenderFillRect(renderer, &shadow);
-                                SDL_Rect shadowR = {actualX + brickW - 2, screenRect.y + by + 2, 2, brickH - 2};
-                                SDL_RenderFillRect(renderer, &shadowR);
-                                
-                                // Mortar lines (dark gray between bricks)
-                                SDL_SetRenderDrawColor(renderer, 100, 70, 50, 255);
-                                SDL_Rect mortarH = {actualX, screenRect.y + by + brickH - 1, brickW, 1};
-                                SDL_RenderFillRect(renderer, &mortarH);
-                                SDL_Rect mortarV = {actualX + brickW - 1, screenRect.y + by, 1, brickH};
-                                SDL_RenderFillRect(renderer, &mortarV);
-                            }
-                        }
-                    }
-                    
-                    // Outer border
-                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-                    SDL_RenderDrawRect(renderer, &screenRect);
+    // Floating brick platform with detailed texture
+    // Base brick color
+    SDL_SetRenderDrawColor(renderer, 184, 111, 80, 255);
+    SDL_RenderFillRect(renderer, &screenRect);
+    
+    // Brick pattern - individual bricks
+    int brickW = 16;
+    int brickH = 16;
+    
+    for (int by = 0; by < screenRect.h; by += brickH) {
+        for (int bx = 0; bx < screenRect.w; bx += brickW) {
+            // Offset every other row
+            int offset = (by / brickH) % 2 == 0 ? 0 : brickW / 2;
+            int actualX = screenRect.x + bx + offset;
+            
+            // Skip if brick would be completely outside
+            if (actualX >= screenRect.x + screenRect.w || actualX + brickW <= screenRect.x) continue;
+            
+            // Calculate clipped brick dimensions
+            int brickStartX = actualX;
+            int brickStartY = screenRect.y + by;
+            int brickEndX = actualX + brickW;
+            int brickEndY = screenRect.y + by + brickH;
+            
+            // Clip to platform bounds
+            if (brickStartX < screenRect.x) brickStartX = screenRect.x;
+            if (brickEndX > screenRect.x + screenRect.w) brickEndX = screenRect.x + screenRect.w;
+            if (brickEndY > screenRect.y + screenRect.h) brickEndY = screenRect.y + screenRect.h;
+            
+            int clippedWidth = brickEndX - brickStartX;
+            int clippedHeight = brickEndY - brickStartY;
+            
+            if (clippedWidth > 0 && clippedHeight > 0) {
+                // Brick highlight (top-left)
+                SDL_SetRenderDrawColor(renderer, 210, 140, 100, 255);
+                if (clippedHeight > 2) {
+                    SDL_Rect highlight = {brickStartX, brickStartY, clippedWidth - 2, 2};
+                    SDL_RenderFillRect(renderer, &highlight);
                 }
+                if (clippedWidth > 2) {
+                    SDL_Rect highlightL = {brickStartX, brickStartY, 2, clippedHeight - 2};
+                    SDL_RenderFillRect(renderer, &highlightL);
+                }
+                
+                // Brick shadow (bottom-right)
+                SDL_SetRenderDrawColor(renderer, 140, 80, 60, 255);
+                if (clippedHeight > 2 && clippedWidth > 4) {
+                    SDL_Rect shadow = {brickStartX + 2, brickStartY + clippedHeight - 2, clippedWidth - 2, 2};
+                    SDL_RenderFillRect(renderer, &shadow);
+                }
+                if (clippedWidth > 2 && clippedHeight > 4) {
+                    SDL_Rect shadowR = {brickStartX + clippedWidth - 2, brickStartY + 2, 2, clippedHeight - 2};
+                    SDL_RenderFillRect(renderer, &shadowR);
+                }
+                
+                // Mortar lines (dark gray between bricks)
+                SDL_SetRenderDrawColor(renderer, 100, 70, 50, 255);
+                if (brickEndY <= screenRect.y + screenRect.h) {
+                    SDL_Rect mortarH = {brickStartX, brickStartY + clippedHeight - 1, clippedWidth, 1};
+                    SDL_RenderFillRect(renderer, &mortarH);
+                }
+                if (brickEndX <= screenRect.x + screenRect.w) {
+                    SDL_Rect mortarV = {brickStartX + clippedWidth - 1, brickStartY, 1, clippedHeight};
+                    SDL_RenderFillRect(renderer, &mortarV);
+                }
+            }
+        }
+    }
+}
             }
         }
         
